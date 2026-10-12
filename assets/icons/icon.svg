@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kineto icon">
+  <rect width="512" height="512" rx="112" fill="#171a18"/>
+  <circle cx="256" cy="256" r="188" fill="#c7ff3d"/>
+  <path d="M157 288c0-70 46-123 105-123 38 0 67 20 86 49l-49 30c-9-15-22-25-39-25-28 0-48 27-48 68s20 69 50 69c20 0 35-12 44-30l51 26c-19 39-52 60-97 60-60 0-103-52-103-124Z" fill="#171a18"/>
+  <path d="M166 142h180v52H166z" fill="#fffaf1" opacity=".9"/>
+</svg>

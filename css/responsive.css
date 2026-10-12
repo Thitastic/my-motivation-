@@ -1,0 +1,63 @@
+@media (min-width: 760px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+
+  .app-main {
+    padding: 28px;
+  }
+
+  .app-nav {
+    position: sticky;
+    top: 18px;
+    bottom: auto;
+    align-self: start;
+    grid-template-columns: 1fr;
+    min-height: auto;
+    margin: 18px 0 18px 18px;
+    border-radius: 28px;
+  }
+
+  .nav-link {
+    grid-template-columns: 28px 1fr;
+    place-items: center start;
+    justify-content: start;
+    padding: 12px 14px;
+    font-size: .88rem;
+  }
+
+  .split {
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  }
+
+  .toast-region {
+    bottom: 18px;
+  }
+}
+
+@media (min-width: 1040px) {
+  .workout-full {
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-card h2,
+  .workout-title {
+    word-break: break-word;
+  }
+
+  .button-row > * {
+    flex: 1 1 100%;
+  }
+
+  .exercise-card {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .exercise-art {
+    width: 62px;
+    border-radius: 16px;
+  }
+}

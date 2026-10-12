@@ -1,0 +1,19 @@
+{
+  "name": "Kineto Calisthenics",
+  "short_name": "Kineto",
+  "description": "Bài tập Calisthenics lưu cục bộ, tiến trình, XP, thành tích và nhật ký tập offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f5ee",
+  "theme_color": "#c7ff3d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
