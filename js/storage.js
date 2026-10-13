@@ -1,6 +1,7 @@
 import { safeJSONParse, todayKey, uid } from "./utils.js";
 
 const KEY = "kineto:data";
+const RECOVERY_KEY = "kineto:data:recovery";
 const SCHEMA_VERSION = 1;
 
 export function createDefaultState() {
@@ -80,6 +81,7 @@ export const Storage = {
       return true;
     } catch (error) {
       console.error("Storage save failed", error);
+      alert("Không thể lưu dữ liệu. Bộ nhớ trình duyệt có thể đã đầy.");
       return false;
     }
   },
@@ -107,8 +109,16 @@ export const Storage = {
 
   importState(incoming) {
     const restored = validateState(migrate(incoming));
-    this.state = restored;
-    this.save();
+    const previous = localStorage.getItem(KEY);
+    try {
+      if (previous) localStorage.setItem(RECOVERY_KEY, previous);
+      localStorage.setItem(KEY, JSON.stringify(restored));
+      this.state = restored;
+      this.emit();
+    } catch (error) {
+      if (previous) localStorage.setItem(KEY, previous);
+      throw new Error("Không thể khôi phục dữ liệu vì bộ nhớ trình duyệt không đủ hoặc bị chặn.");
+    }
     return this.state;
   },
 

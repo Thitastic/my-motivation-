@@ -1,31 +1,35 @@
 import { EXERCISES, MUSCLE_GROUPS, PROGRESSION_PATHS, EXERCISE_MAP } from "../data/exercises.js";
 import { PROGRAMS } from "../data/programs.js";
 import { exerciseCard } from "../components/exerciseCard.js";
+import { muscleGroupCard } from "../components/muscleGroupCard.js";
 import { performanceStatus } from "../services/workoutEngine.js";
 import { escapeHTML } from "../utils.js";
 import { labelDifficulty, labelGroup, labelLevel, numberFormat, t, vi } from "../i18n.js";
 
 export function trainPage(state) {
   const custom = state.customRoutines || [];
+  const recentGroups = new Set(state.workoutHistory.slice(-4).flatMap((workout) => workout.muscleGroups || []));
   return `
     <div class="screen">
-      <section class="grid">
-        ${[5, 10, 15, 20].map((minutes) => `
-          <article class="card">
-            <p class="eyebrow">${t("ui.quickWorkout")}</p>
-            <h2>${numberFormat.format(minutes)} phút</h2>
-            <p class="muted">${t("ui.generatedWorkout")}</p>
-            <button class="btn accent" type="button" data-action="start-quick" data-minutes="${minutes}">${t("ui.start")}</button>
-          </article>
-        `).join("")}
+      <section class="card">
+        <p class="eyebrow">${t("ui.quickWorkout")}</p>
+        <h2>Tập theo thời gian</h2>
+        <div class="rail-scroll" style="margin-top:12px">
+          ${[5, 10, 15, 20].map((minutes) => `
+            <article class="card quick-card">
+              <h3>${numberFormat.format(minutes)} phút</h3>
+              <p class="muted">${t("ui.generatedWorkout")}</p>
+              <button class="btn accent" type="button" data-action="start-quick" data-minutes="${minutes}">${t("ui.start")}</button>
+            </article>
+          `).join("")}
+        </div>
       </section>
 
       <section class="card">
         <p class="eyebrow">${t("ui.muscleTraining")}</p>
-        <div class="grid-tight">
-          ${MUSCLE_GROUPS.map((group) => `
-            <button class="ghost-btn" type="button" data-action="start-group" data-group="${escapeHTML(group)}">${labelGroup(group)}</button>
-          `).join("")}
+        <h2>Chọn nhóm cơ</h2>
+        <div class="muscle-grid" style="margin-top:12px">
+          ${MUSCLE_GROUPS.map((group) => muscleGroupCard(group, { selected: recentGroups.has(group) })).join("")}
         </div>
       </section>
 

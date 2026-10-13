@@ -1,6 +1,8 @@
 import { EXERCISE_MAP } from "../data/exercises.js";
 import { formatDuration, escapeHTML } from "../utils.js";
 import { exerciseMedia } from "../components/exerciseMedia.js";
+import { progressRing } from "../components/progressRing.js";
+import { muscleGroupSummary } from "../components/muscleGroupCard.js";
 import { numberFormat, t } from "../i18n.js";
 
 export function workoutPage(state) {
@@ -11,7 +13,7 @@ export function workoutPage(state) {
         <section class="card hero-card">
           <p class="eyebrow">${t("ui.noActiveSession")}</p>
           <h2>${t("ui.readyWhenYouAre")}</h2>
-          <p style="font-weight:800">${t("ui.chooseWorkoutCopy")}</p>
+          <p style="font-weight:850">${t("ui.chooseWorkoutCopy")}</p>
           <a class="btn" href="#/train">${t("ui.chooseWorkout")}</a>
         </section>
       </div>
@@ -24,9 +26,10 @@ export function workoutPage(state) {
   const percent = totalSets ? Math.round((completedSets / totalSets) * 100) : 0;
   const restLeft = session.restUntil ? Math.max(0, Math.ceil((new Date(session.restUntil) - Date.now()) / 1000)) : 0;
   const next = session.exercises[session.currentExerciseIndex + 1];
+  const activeGroup = exercise?.muscleGroups?.[0] || session.exercises.map((item) => EXERCISE_MAP[item.exerciseId]?.muscleGroups?.[0]).find(Boolean);
   return `
     <div class="workout-full">
-      <section class="workout-panel">
+      <section class="workout-panel" data-swipe-exercise>
         <p class="eyebrow">${escapeHTML(session.name)}</p>
         <h2 class="workout-title">${exercise ? escapeHTML(exercise.name) : t("ui.workoutComplete")}</h2>
         ${exercise ? `
@@ -47,7 +50,7 @@ export function workoutPage(state) {
         ` : `
           <p class="muted">${t("ui.saveSessionCopy")}</p>
         `}
-        <div class="button-row" style="margin-top:14px">
+        <div class="button-row workout-controls">
           <button class="btn accent" type="button" data-action="workout-start">${t("ui.start")}</button>
           <button class="ghost-btn" type="button" data-action="workout-pause">${t("ui.pause")}</button>
           <button class="ghost-btn" type="button" data-action="workout-resume">${t("ui.resume")}</button>
@@ -58,16 +61,20 @@ export function workoutPage(state) {
 
       <aside class="screen">
         <section class="timer-face">
-          <div>
+          <div style="display:grid;place-items:center;gap:6px">
             <p class="eyebrow" style="color:var(--accent)">${t("ui.elapsed")}</p>
             <strong id="elapsed-time">${formatDuration(session.elapsedSeconds)}</strong>
           </div>
         </section>
-        <section class="card">
-          <p class="eyebrow">${t("ui.restTimer")}</p>
-          <div class="big-number" id="rest-time">${formatDuration(restLeft)}</div>
-          <p class="muted">${restLeft > 0 ? t("ui.restCopy") : t("ui.noRestTimer")}</p>
+        <section class="card daily-card">
+          <div>
+            <p class="eyebrow">${t("ui.restTimer")}</p>
+            <div class="big-number" id="rest-time">${formatDuration(restLeft)}</div>
+            <p class="muted">${restLeft > 0 ? t("ui.restCopy") : t("ui.noRestTimer")}</p>
+          </div>
+          ${progressRing(percent, `${percent}%`)}
         </section>
+        ${activeGroup ? `<section class="card">${muscleGroupSummary(activeGroup)}</section>` : ""}
         <section class="card">
           <p class="eyebrow">${t("ui.next")}</p>
           <h3>${next ? escapeHTML(EXERCISE_MAP[next.exerciseId]?.name || t("ui.next")) : t("ui.summary")}</h3>

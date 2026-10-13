@@ -11,6 +11,26 @@ export const MUSCLE_GROUPS = [
   "Mobility and Stretching"
 ];
 
+export const muscleGroupImages = {
+  abs: "assets/images/abdominal.png",
+  back: "assets/images/back.png",
+  chest: "assets/images/chest.png",
+  shoulders: "assets/images/shoulder.png",
+  legs: "assets/images/thigh.png"
+};
+
+export const muscleGroupImageKeys = {
+  Chest: "chest",
+  Back: "back",
+  Shoulders: "shoulders",
+  "Abs and Core": "abs",
+  "Legs and Glutes": "legs"
+};
+
+export function getMuscleGroupImage(group) {
+  return muscleGroupImages[muscleGroupImageKeys[group]] || "";
+}
+
 export const EQUIPMENT = [
   "None",
   "Yoga mat",

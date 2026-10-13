@@ -13,8 +13,8 @@
 .reward-pop {
   position: fixed;
   left: 50%;
-  bottom: 108px;
-  z-index: 55;
+  bottom: calc(var(--nav-size) + env(safe-area-inset-bottom) + 26px);
+  z-index: 75;
   padding: .7rem 1rem;
   border-radius: 999px;
   background: var(--accent);
@@ -25,11 +25,36 @@
 }
 
 .view-enter {
-  animation: viewEnter .28s ease both;
+  animation: viewEnter .24s cubic-bezier(.2, .8, .2, 1) both;
 }
 
 @keyframes viewEnter {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen > *,
+.grid > *,
+.grid-tight > *,
+.rail-scroll > * {
+  animation: cardIn .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.screen > *:nth-child(2) { animation-delay: .035s; }
+.screen > *:nth-child(3) { animation-delay: .07s; }
+.screen > *:nth-child(4) { animation-delay: .105s; }
+.grid > *:nth-child(2),
+.grid-tight > *:nth-child(2),
+.rail-scroll > *:nth-child(2) { animation-delay: .035s; }
+.grid > *:nth-child(3),
+.grid-tight > *:nth-child(3),
+.rail-scroll > *:nth-child(3) { animation-delay: .07s; }
+.grid > *:nth-child(4),
+.grid-tight > *:nth-child(4),
+.rail-scroll > *:nth-child(4) { animation-delay: .105s; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -42,13 +67,50 @@
   50% { transform: scale(1.03); }
 }
 
+.flame {
+  animation: flameMove 2.4s ease-in-out infinite;
+}
+
+@keyframes flameMove {
+  0%, 100% { transform: translateY(0) rotate(-1deg); filter: saturate(1); }
+  50% { transform: translateY(-2px) rotate(1.5deg); filter: saturate(1.2); }
+}
+
+.calendar-day.has-workout,
+.heat-cell[data-level]:not([data-level="0"]) {
+  animation: heatReveal .28s ease both;
+}
+
+@keyframes heatReveal {
+  from { opacity: .35; transform: scale(.84); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-panel {
+  animation: sheetIn .24s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes sheetIn {
+  from { transform: translateY(18px); opacity: .86; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.qr-stage canvas {
+  animation: qrSwap .18s ease both;
+}
+
+@keyframes qrSwap {
+  from { opacity: .01; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: .001ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-duration: .001ms !important;
+    transition-duration: .01ms !important;
   }
 }

@@ -1,5 +1,5 @@
 import { todayKey } from "../utils.js";
-import { dateFormat, monthYearFormat } from "../i18n.js";
+import { dateFormat, monthYearFormat, t } from "../i18n.js";
 
 export function heatmap(history, days = 98) {
   const byDate = new Map();
@@ -28,13 +28,13 @@ export function monthCalendar(history, active = todayKey()) {
   const cells = Array.from({ length: offset }, () => `<span></span>`);
   for (let day = 1; day <= days; day += 1) {
     const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    cells.push(`<button class="calendar-day ${byDate.has(key) ? "has-workout" : ""}" type="button" data-action="show-date" data-date="${key}">${day}</button>`);
+    cells.push(`<button class="calendar-day ${byDate.has(key) ? "has-workout" : ""}" type="button" data-action="show-date" data-date="${key}" aria-pressed="${key === active}">${day}</button>`);
   }
   return `
-    <div class="calendar">
+    <div class="calendar" data-calendar>
       <div class="button-row" style="justify-content:space-between">
         <h3>${monthYearFormat.format(selected)}</h3>
-        <span class="pill">Chọn ngày</span>
+        <span class="pill">${t("ui.clickDay")}</span>
       </div>
       <div class="calendar-grid">
         ${["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d) => `<strong class="muted" style="text-align:center">${d}</strong>`).join("")}

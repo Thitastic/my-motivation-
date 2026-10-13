@@ -6,7 +6,7 @@ export function exerciseCard(exercise, action = "view-exercise") {
   const alt = exercise.media?.type === "missing" ? "" : `${exercise.name} minh họa`;
   return `
     <article class="card exercise-card">
-      <div class="exercise-art"><img src="${src}" alt="${escapeHTML(alt)}" loading="lazy"></div>
+      <div class="exercise-art"><img src="${src}" alt="${escapeHTML(alt)}" loading="lazy" decoding="async"></div>
       <div>
         <h3>${escapeHTML(exercise.name)}</h3>
         <p class="muted">${escapeHTML(exercise.description)}</p>

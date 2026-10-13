@@ -22,22 +22,22 @@ export function profilePage(state) {
           </div>
         </article>
         <article class="card">
-          <p class="eyebrow">Cấp</p>
+          <p class="eyebrow">Cấp hiện tại</p>
           <div class="big-number">${numberFormat.format(level.level)}</div>
           <p class="muted">${numberFormat.format(state.xp.total)} XP tổng, ${level.percent}% ${t("ui.toNextLevel")}.</p>
         </article>
       </section>
 
       <section class="card">
-        <p class="eyebrow">${t("ui.qrBackup")}</p>
+        <p class="eyebrow">Cá nhân → ${t("ui.qrBackup")}</p>
         <h2>${t("ui.manualTransfer")}</h2>
         <p class="muted">${t("ui.qrCopy")}</p>
-        <div class="button-row">
+        <div class="grid-tight" style="margin-top:14px">
           <button class="btn accent" type="button" data-action="generate-qr">${t("ui.generateQR")}</button>
+          <button class="btn" type="button" data-action="scan-qr">${t("ui.scanQR")}</button>
           <button class="ghost-btn" type="button" data-action="export-json">${t("ui.exportJSON")}</button>
           <button class="ghost-btn" type="button" data-action="export-encrypted">${t("ui.exportEncrypted")}</button>
           <label class="ghost-btn">${t("ui.importFile")} <input class="sr-only" type="file" accept=".json,application/json" data-action="import-file"></label>
-          <button class="ghost-btn" type="button" data-action="scan-qr">${t("ui.scanQR")}</button>
         </div>
         <div id="transfer-area" style="margin-top:14px"></div>
       </section>

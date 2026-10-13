@@ -1,9 +1,10 @@
 import { monthCalendar, heatmap } from "../components/calendar.js";
+import { muscleGroupSummary } from "../components/muscleGroupCard.js";
 import { levelProgress } from "../services/xpSystem.js";
 import { aggregateMetrics } from "../services/workoutEngine.js";
 import { EXERCISES } from "../data/exercises.js";
 import { escapeHTML } from "../utils.js";
-import { labelGroup, numberFormat, t, monthYearFormat } from "../i18n.js";
+import { labelGroup, numberFormat, t } from "../i18n.js";
 
 export function progressPage(state) {
   const metrics = aggregateMetrics(state);
@@ -12,6 +13,7 @@ export function progressPage(state) {
     .filter(([, value]) => value.bestReps)
     .sort((a, b) => b[1].bestReps - a[1].bestReps)
     .slice(0, 8);
+  const groupCounts = muscleCounts(state).slice(0, 5);
   return `
     <div class="screen">
       <section class="grid-tight">
@@ -42,6 +44,14 @@ export function progressPage(state) {
         <article class="card">
           <p class="eyebrow">${t("ui.muscleDistribution")}</p>
           <canvas class="chart" id="muscle-chart" width="640" height="280" data-chart="muscle"></canvas>
+          <div class="muscle-stat-list">
+            ${groupCounts.length ? groupCounts.map(({ group, count }) => `
+              <div class="muscle-stat">
+                ${muscleGroupSummary(group)}
+                <strong>${numberFormat.format(count)} buổi</strong>
+              </div>
+            `).join("") : `<p class="muted">Chưa có dữ liệu nhóm cơ.</p>`}
+          </div>
         </article>
         <article class="card">
           <p class="eyebrow">${t("ui.xpProgression")}</p>
@@ -81,6 +91,12 @@ export function drawCharts(state) {
   });
 }
 
+function muscleCounts(state) {
+  const counts = {};
+  state.workoutHistory.forEach((workout) => (workout.muscleGroups || []).forEach((group) => counts[group] = (counts[group] || 0) + 1));
+  return Object.entries(counts).map(([group, count]) => ({ group, count })).sort((a, b) => b.count - a.count);
+}
+
 function drawBars(ctx, width, height, values, labels, color = "#c7ff3d") {
   const max = Math.max(1, ...values);
   const gap = 8;
@@ -103,22 +119,20 @@ function drawWeekly(ctx, width, height, state) {
   for (let i = 7; i >= 0; i -= 1) {
     const start = new Date();
     start.setDate(start.getDate() - i * 7);
-    const label = `${start.getDate()}/${start.getMonth() + 1}`;
-    labels.push(label);
+    labels.push(`${start.getDate()}/${start.getMonth() + 1}`);
     values.push(state.workoutHistory.filter((item) => {
       const d = new Date(`${item.date}T00:00:00`);
       return Math.abs(d - start) < 7 * 86400000 && d >= start;
     }).length);
   }
-  drawBars(ctx, width, height, values, labels, "#4ab8ff");
+  drawBars(ctx, width, height, values, labels, "#3aa7ff");
 }
 
 function drawMuscle(ctx, width, height, state) {
-  const counts = {};
-  state.workoutHistory.forEach((workout) => (workout.muscleGroups || []).forEach((group) => counts[group] = (counts[group] || 0) + 1));
-  const labels = Object.keys(counts).slice(0, 8);
-  const values = labels.map((label) => counts[label]);
-  drawBars(ctx, width, height, values.length ? values : [0], labels.length ? labels.map((label) => labelGroup(label).split(" ")[0]) : ["Trống"], "#2dd17c");
+  const groups = muscleCounts(state).slice(0, 8);
+  const labels = groups.map((item) => item.group);
+  const values = groups.map((item) => item.count);
+  drawBars(ctx, width, height, values.length ? values : [0], labels.length ? labels.map((label) => labelGroup(label).split(" ")[0]) : ["Trống"], "#28c977");
 }
 
 function drawXP(ctx, width, height, state) {

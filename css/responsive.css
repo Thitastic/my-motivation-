@@ -1,7 +1,22 @@
+@media (min-width: 520px) {
+  .grid-tight {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .muscle-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+}
+
 @media (min-width: 760px) {
   .app-shell {
     display: grid;
     grid-template-columns: 230px minmax(0, 1fr);
+    overflow-x: clip;
   }
 
   .app-main {
@@ -16,6 +31,7 @@
     grid-template-columns: 1fr;
     min-height: auto;
     margin: 18px 0 18px 18px;
+    padding: 10px;
     border-radius: 28px;
   }
 
@@ -31,6 +47,25 @@
     grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
   }
 
+  .rail-scroll {
+    grid-auto-columns: minmax(150px, 180px);
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .muscle-carousel {
+    grid-auto-columns: minmax(180px, 210px);
+  }
+
+  .modal-root {
+    align-items: center;
+    padding: 16px;
+  }
+
+  .modal-panel {
+    border-radius: 28px;
+  }
+
   .toast-region {
     bottom: 18px;
   }
@@ -40,24 +75,68 @@
   .workout-full {
     grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
   }
+
+  .workout-controls {
+    bottom: 18px;
+  }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 430px) {
   .hero-card h2,
   .workout-title {
     word-break: break-word;
   }
 
-  .button-row > * {
+  .button-row > .btn,
+  .button-row > .danger-btn {
     flex: 1 1 100%;
   }
 
+  .button-row > .ghost-btn {
+    flex: 1 1 calc(50% - 10px);
+  }
+
   .exercise-card {
-    grid-template-columns: 62px minmax(0, 1fr);
+    grid-template-columns: 66px minmax(0, 1fr);
   }
 
   .exercise-art {
-    width: 62px;
+    width: 66px;
     border-radius: 16px;
+  }
+
+  .metric {
+    padding: 14px;
+  }
+
+  .metric strong {
+    font-size: 1.65rem;
+  }
+
+  .muscle-card {
+    min-height: 176px;
+    padding: 12px;
+  }
+
+  .muscle-visual {
+    min-height: 86px;
+  }
+
+  .muscle-visual img {
+    height: 86px;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-main {
+    padding-inline: 12px;
+  }
+
+  .nav-link {
+    font-size: .62rem;
+  }
+
+  .hero-card {
+    padding: 18px;
   }
 }

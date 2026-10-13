@@ -1,4 +1,4 @@
-const CACHE_NAME = "kineto-v2";
+const CACHE_NAME = "kineto-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -27,6 +27,9 @@ const APP_SHELL = [
   "./js/services/streakSystem.js",
   "./js/services/recommendations.js",
   "./js/services/qrTransfer.js",
+  "./js/vendor/qrcode-generator.js",
+  "./js/vendor/qrcode-adapter.js",
+  "./js/vendor/jsQR.min.js",
   "./js/pages/home.js",
   "./js/pages/train.js",
   "./js/pages/workout.js",
@@ -42,6 +45,11 @@ const APP_SHELL = [
   "./assets/illustrations/legs.svg",
   "./assets/illustrations/full-body.svg",
   "./assets/illustrations/mobility.svg",
+  "./assets/images/abdominal.png",
+  "./assets/images/back.png",
+  "./assets/images/chest.png",
+  "./assets/images/shoulder.png",
+  "./assets/images/thigh.png",
   "./assets/exercises/media-manifest.json",
   "./assets/exercises/shoulders/pike-push-up-thumb.png",
   "./assets/exercises/core/crunch.png",
@@ -57,10 +65,7 @@ const APP_SHELL = [
   "./assets/exercises/mobility/hip-flexor-stretch-thumb.png"
 ];
 
-const OPTIONAL_REMOTE = [
-  "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js",
-  "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"
-];
+const OPTIONAL_REMOTE = [];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

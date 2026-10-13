@@ -12,7 +12,7 @@ import { profilePage } from "./pages/profile.js";
 import { recommendWorkout, initialRecommendation } from "./services/recommendations.js";
 import { buildPlanFromExerciseIds, createSession, recordSet, skipExercise, addSet, finishWorkout, aggregateMetrics } from "./services/workoutEngine.js";
 import { awardXP } from "./services/xpSystem.js";
-import { createQRFrames, resolveQRFrames, exportJSON, encryptBackup, parseBackupFile } from "./services/qrTransfer.js";
+import { createQRFrames, resolveQRFrames, exportJSON, encryptBackup, parseBackupFile, validateBackupObject } from "./services/qrTransfer.js";
 import { escapeHTML, safeJSONParse, toast, reward, confetti, uid } from "./utils.js";
 import { exerciseMedia } from "./components/exerciseMedia.js";
 import { dateFormat, labelDifficulty, labelEquipment, labelGoal, labelGroup, labelLevel, numberFormat, t } from "./i18n.js";
@@ -25,6 +25,10 @@ const router = new Router(routes, () => Storage.state);
 let workoutTimer = null;
 let scannerStream = null;
 const scannedFrames = new Map();
+let scannerTransferId = null;
+let qrFrames = [];
+let qrFrameIndex = 0;
+let qrAutoplay = null;
 
 router.start();
 if (!Storage.state.profile) requestAnimationFrame(() => showOnboarding());
@@ -43,6 +47,7 @@ document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
   const action = target.dataset.action;
+  haptic();
   if (action === "toggle-theme") toggleTheme();
   if (action === "open-onboarding") showOnboarding();
   if (action === "start-recommended") startPlan(recommendWorkout(Storage.state));
@@ -61,11 +66,16 @@ document.addEventListener("click", async (event) => {
   if (action === "skip-exercise") updateSession((session) => skipExercise(session));
   if (action === "add-set") updateSession((session) => addSet(session));
   if (action === "finish-workout") completeWorkout();
-  if (action === "show-date") showDateDetails(target.dataset.date);
+  if (action === "show-date") showDateDetailsClean(target.dataset.date);
   if (action === "generate-qr") generateQR();
+  if (action === "qr-next") showQRFrame(qrFrameIndex + 1);
+  if (action === "qr-prev") showQRFrame(qrFrameIndex - 1);
+  if (action === "qr-autoplay") toggleQRAutoplay();
+  if (action === "download-backup") exportJSON(`kineto-backup-${Date.now()}.json`, Storage.exportState());
   if (action === "export-json") exportJSON(`kineto-backup-${Date.now()}.json`, Storage.exportState());
   if (action === "export-encrypted") exportEncrypted();
   if (action === "scan-qr") showScanner();
+  if (action === "retry-camera") showScanner();
   if (action === "restore-preview") restorePreview(target.dataset.payloadId);
   if (action === "close-modal") closeModal();
   if (action === "save-profile-preferences") saveProfilePreferences();
@@ -81,12 +91,44 @@ document.addEventListener("click", async (event) => {
 document.addEventListener("change", async (event) => {
   if (event.target.matches("#library-group, #exercise-search")) filterLibrary();
   if (event.target.matches("[data-action='import-file']")) importFile(event.target.files[0]);
+  if (event.target.matches("#camera-select")) startCamera(event.target.value);
+});
+
+let sheetDragStart = null;
+let exerciseSwipeStart = null;
+document.addEventListener("pointerdown", (event) => {
+  if (event.target.closest(".modal-panel")) sheetDragStart = event.clientY;
+  if (event.target.closest("[data-swipe-exercise]")) {
+    exerciseSwipeStart = { x: event.clientX, y: event.clientY };
+  }
+});
+document.addEventListener("pointerup", (event) => {
+  if (sheetDragStart === null) return;
+  const delta = event.clientY - sheetDragStart;
+  sheetDragStart = null;
+  if (delta > 110 && event.target.closest(".modal-panel")) closeModal();
+});
+document.addEventListener("pointerup", (event) => {
+  if (!exerciseSwipeStart) return;
+  const dx = event.clientX - exerciseSwipeStart.x;
+  const dy = event.clientY - exerciseSwipeStart.y;
+  exerciseSwipeStart = null;
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+  if (dx < 0) updateSession((session) => skipExercise(session));
+  if (dx > 0) {
+    const active = Storage.state.activeSession?.exercises?.[Storage.state.activeSession.currentExerciseIndex]?.exerciseId;
+    if (active) showExercise(active);
+  }
 });
 
 function toggleTheme() {
   Storage.update((draft) => {
     draft.preferences.theme = draft.preferences.theme === "dark" ? "light" : "dark";
   });
+}
+
+function haptic(pattern = 12) {
+  if ("vibrate" in navigator) navigator.vibrate(pattern);
 }
 
 function claimFreeze() {
@@ -155,6 +197,10 @@ function showOnboarding() {
 function closeModal() {
   document.getElementById("modal-root").innerHTML = "";
   stopScanner();
+  if (qrAutoplay) clearInterval(qrAutoplay);
+  qrAutoplay = null;
+  scannedFrames.clear();
+  scannerTransferId = null;
 }
 
 function startPlan(plan) {
@@ -229,7 +275,7 @@ function completeWorkout() {
     return;
   }
   confetti();
-  showSummary(result);
+  showSummaryClean(result);
   router.render();
 }
 
@@ -245,6 +291,27 @@ function evaluateAchievements(state) {
 }
 
 function showSummary(result) {
+  const workout = result.workout;
+  const modal = document.getElementById("modal-root");
+  modal.innerHTML = `
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+      <div class="modal-body">
+        <p class="eyebrow">${t("ui.workoutComplete")}</p>
+        <h2 id="summary-title">${escapeHTML(workout.name)}</h2>
+        <div class="grid-tight">
+          <div class="metric"><span class="label">Thời lượng</span><strong>${numberFormat.format(workout.durationMinutes)}p</strong></div>
+          <div class="metric"><span class="label">${t("ui.set")}</span><strong>${numberFormat.format(workout.completedSets)}</strong></div>
+          <div class="metric"><span class="label">Số lần</span><strong>${numberFormat.format(workout.totalReps)}</strong></div>
+          <div class="metric"><span class="label">XP</span><strong>${numberFormat.format(result.xpAwarded)}</strong></div>
+        </div>
+        <p class="muted">${result.newPRs.length ? `${numberFormat.format(result.newPRs.length)} kỷ lục cá nhân mới.` : t("ui.noNewPr")} ${result.levelUp ? t("ui.levelUp") : ""}</p>
+        <button class="btn accent" type="button" data-action="close-modal">${t("ui.doneButton")}</button>
+      </div>
+    </section>
+  `;
+}
+
+function showSummaryClean(result) {
   const workout = result.workout;
   const modal = document.getElementById("modal-root");
   modal.innerHTML = `
@@ -355,26 +422,97 @@ function showDateDetails(date) {
   `).join("") : `<p class="muted">${t("ui.noWorkoutDate")} ${escapeHTML(dateFormat.format(new Date(`${date}T00:00:00`)))}.</p>`;
 }
 
+function showDateDetailsClean(date) {
+  const target = document.getElementById("date-details");
+  if (!target) return;
+  const workouts = Storage.state.workoutHistory.filter((item) => item.date === date);
+  target.innerHTML = workouts.length ? workouts.map((workout) => `
+    <article class="metric">
+      <span class="label">${escapeHTML(workout.name)}</span>
+      <strong>${numberFormat.format(workout.durationMinutes)}p</strong>
+      <p class="muted">${numberFormat.format(workout.completedSets)} hiệp, ${numberFormat.format(workout.totalReps)} lần, ${numberFormat.format(workout.xpEarned)} XP</p>
+      <div class="pill-list">${workout.muscleGroups.map((group) => `<span class="pill">${labelGroup(group)}</span>`).join("")}</div>
+    </article>
+  `).join("") : `<p class="muted">${t("ui.noWorkoutDate")} ${escapeHTML(dateFormat.format(new Date(`${date}T00:00:00`)))}.</p>`;
+}
+
 async function generateQR() {
-  const area = document.getElementById("transfer-area");
-  if (!area) return;
   if (!window.QRCode) {
-    area.innerHTML = `<p class="muted">${t("ui.qrUnavailable")}</p>`;
+    toast(t("ui.qrUnavailable"));
     return;
   }
-  const frames = await createQRFrames(Storage.exportState());
-  area.innerHTML = `
-    <p class="muted">${frames.length === 1 ? t("ui.qrSingleReady") : `${numberFormat.format(frames.length)} ${t("ui.qrSequential")}`}</p>
-    <div class="qr-grid"></div>
-  `;
-  const grid = area.querySelector(".qr-grid");
-  frames.forEach((frame, index) => {
-    const card = document.createElement("article");
-    card.className = "card qr-card";
-    card.innerHTML = `<p class="eyebrow">${t("ui.frame")} ${index + 1}/${frames.length}</p><canvas></canvas>`;
-    grid.append(card);
-    window.QRCode.toCanvas(card.querySelector("canvas"), frame, { margin: 1, width: 260 });
-  });
+  try {
+    qrFrames = await createQRFrames(Storage.exportState());
+    qrFrameIndex = 0;
+    document.getElementById("modal-root").innerHTML = `
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+        <div class="modal-body qr-transfer">
+          <div>
+            <p class="eyebrow">${t("ui.qrBackup")}</p>
+            <h2 id="qr-title">${t("ui.generateQR")}</h2>
+            <p class="muted">${t("ui.qrInstruction")}</p>
+          </div>
+          <div class="qr-progress">
+            <div class="progress-track"><div id="qr-progress-fill" class="progress-fill"></div></div>
+            <strong id="qr-progress-text"></strong>
+          </div>
+          <div class="qr-stage"><canvas id="qr-canvas" aria-label="Mã QR chuyển dữ liệu"></canvas></div>
+          <p id="qr-frame-copy" class="muted"></p>
+          <div class="button-row">
+            <button class="ghost-btn" type="button" data-action="qr-prev">${t("ui.previousFrame")}</button>
+            <button class="ghost-btn" type="button" data-action="qr-next">${t("ui.nextFrame")}</button>
+            ${qrFrames.length > 1 ? `<button class="ghost-btn" type="button" data-action="qr-autoplay">${t("ui.autoplayFrames")}</button>` : ""}
+            <button class="ghost-btn" type="button" data-action="download-backup">${t("ui.downloadBackup")}</button>
+            <button class="danger-btn" type="button" data-action="close-modal">${t("ui.cancel")}</button>
+          </div>
+        </div>
+      </section>
+    `;
+    showQRFrame(0);
+  } catch (error) {
+    if (error.code === "QR_TOO_LARGE") {
+      document.getElementById("modal-root").innerHTML = `
+        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="large-transfer-title">
+          <div class="modal-body">
+            <p class="eyebrow">${t("ui.qrBackup")}</p>
+            <h2 id="large-transfer-title">${t("ui.largeTransfer")}</h2>
+            <p class="muted">Dữ liệu cần khoảng ${numberFormat.format(error.frameCount || 0)} mã QR. Tệp sao lưu sẽ đáng tin cậy hơn.</p>
+            <div class="button-row">
+              <button class="btn accent" type="button" data-action="download-backup">${t("ui.downloadBackup")}</button>
+              <button class="ghost-btn" type="button" data-action="close-modal">${t("ui.cancel")}</button>
+            </div>
+          </div>
+        </section>
+      `;
+      return;
+    }
+    toast(error.message || t("ui.importFailed"));
+  }
+}
+
+function showQRFrame(index) {
+  if (!qrFrames.length) return;
+  qrFrameIndex = (index + qrFrames.length) % qrFrames.length;
+  const canvas = document.getElementById("qr-canvas");
+  if (!canvas) return;
+  window.QRCode.toCanvas(canvas, qrFrames[qrFrameIndex], { margin: 2, width: 320, errorCorrectionLevel: "M" });
+  const progress = Math.round(((qrFrameIndex + 1) / qrFrames.length) * 100);
+  document.getElementById("qr-progress-fill")?.style.setProperty("--value", `${progress}%`);
+  const text = document.getElementById("qr-progress-text");
+  if (text) text.textContent = `${qrFrameIndex + 1}/${qrFrames.length}`;
+  const copy = document.getElementById("qr-frame-copy");
+  if (copy) copy.textContent = qrFrames.length === 1 ? t("ui.qrSingleReady") : `${t("ui.frame")} ${qrFrameIndex + 1}/${qrFrames.length}. ${t("ui.qrSequential")}`;
+}
+
+function toggleQRAutoplay() {
+  if (qrAutoplay) {
+    clearInterval(qrAutoplay);
+    qrAutoplay = null;
+    toast(t("ui.pauseAutoplay"));
+    return;
+  }
+  qrAutoplay = setInterval(() => showQRFrame(qrFrameIndex + 1), 1600);
+  toast(t("ui.autoplayFrames"));
 }
 
 async function exportEncrypted() {
@@ -397,7 +535,9 @@ async function importFile(file) {
 
 function previewIncoming(text) {
   const incoming = safeJSONParse(text);
-  if (!incoming) {
+  try {
+    validateBackupObject(incoming);
+  } catch (error) {
     toast(t("ui.invalidBackup"));
     return;
   }
@@ -423,25 +563,39 @@ function previewIncoming(text) {
 function restorePreview(payloadId) {
   const incoming = window[payloadId];
   if (!incoming) return;
-  Storage.importState(incoming);
-  delete window[payloadId];
-  closeModal();
-  router.render();
-  toast(t("ui.profileRestored"));
+  try {
+    Storage.importState(incoming);
+    delete window[payloadId];
+    closeModal();
+    router.render();
+    toast(t("ui.profileRestored"));
+  } catch (error) {
+    toast(error.message || t("ui.importFailed"));
+  }
 }
 
 async function showScanner() {
   const modal = document.getElementById("modal-root");
+  stopScanner();
+  scannedFrames.clear();
+  scannerTransferId = null;
   modal.innerHTML = `
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
       <div class="modal-body scanner-box">
         <p class="eyebrow">${t("ui.qrImport")}</p>
         <h2 id="scanner-title">${t("ui.scanFrames")}</h2>
         <p class="muted">${t("ui.scannerCopy")}</p>
+        <div class="field" id="camera-field" hidden>
+          <label for="camera-select">${t("ui.cameraSelect")}</label>
+          <select id="camera-select"></select>
+        </div>
         <video id="scanner-video" autoplay playsinline muted></video>
         <canvas id="scanner-canvas" class="sr-only"></canvas>
-        <p id="scanner-status" class="muted">${t("ui.startingCamera")}</p>
-        <div class="button-row"><button class="btn" data-action="close-modal">${t("ui.stop")}</button></div>
+        <div class="scanner-status-grid">
+          <p id="scanner-status" class="muted">${t("ui.startingCamera")}</p>
+          <p id="scanner-missing" class="muted"></p>
+        </div>
+        <div class="button-row"><button class="ghost-btn" data-action="retry-camera">${t("ui.retryCamera")}</button><button class="btn" data-action="close-modal">${t("ui.stop")}</button></div>
       </div>
     </section>
   `;
@@ -449,20 +603,44 @@ async function showScanner() {
     document.getElementById("scanner-status").textContent = t("ui.scannerUnavailable");
     return;
   }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    document.getElementById("scanner-status").textContent = t("ui.cameraFailed");
+    return;
+  }
   try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    const video = document.getElementById("scanner-video");
-    video.srcObject = scannerStream;
-    scanLoop();
+    await populateCameras();
+    await startCamera();
   } catch (error) {
     document.getElementById("scanner-status").textContent = t("ui.cameraFailed");
   }
+}
+
+async function populateCameras() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cameras = devices.filter((device) => device.kind === "videoinput");
+  const select = document.getElementById("camera-select");
+  const field = document.getElementById("camera-field");
+  if (!select || !field || cameras.length < 2) return;
+  field.hidden = false;
+  select.innerHTML = cameras.map((camera, index) => `<option value="${camera.deviceId}">${camera.label || `Camera ${index + 1}`}</option>`).join("");
+}
+
+async function startCamera(deviceId = "") {
+  stopScanner();
+  const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: { facingMode: "environment" } };
+  scannerStream = await navigator.mediaDevices.getUserMedia(constraints);
+  const video = document.getElementById("scanner-video");
+  if (!video) return;
+  video.srcObject = scannerStream;
+  await video.play().catch(() => {});
+  scanLoop();
 }
 
 function scanLoop() {
   const video = document.getElementById("scanner-video");
   const canvas = document.getElementById("scanner-canvas");
   const status = document.getElementById("scanner-status");
+  const missingText = document.getElementById("scanner-missing");
   if (!video || !canvas || !scannerStream) return;
   const ctx = canvas.getContext("2d");
   const tick = async () => {
@@ -477,9 +655,19 @@ function scanLoop() {
     if (code?.data) {
       const frame = safeJSONParse(code.data);
       if (frame?.type === "kineto-transfer") {
+        if (scannerTransferId && scannerTransferId !== frame.transferId) {
+          scannedFrames.clear();
+        }
+        scannerTransferId = frame.transferId;
+        if (!scannedFrames.has(frame.index)) haptic(24);
         scannedFrames.set(frame.index, code.data);
+        const missing = [];
+        for (let i = 0; i < frame.total; i += 1) {
+          if (!scannedFrames.has(i)) missing.push(i + 1);
+        }
         status.textContent = `${t("ui.captured")} ${scannedFrames.size}/${frame.total} ${t("ui.frames")}.`;
-        if (scannedFrames.size === frame.total) {
+        if (missingText) missingText.textContent = missing.length ? `${t("ui.missingFrames")}: ${missing.join(", ")}` : "";
+        if (scannedFrames.size === frame.total && missing.length === 0) {
           try {
             const text = await resolveQRFrames([...scannedFrames.values()]);
             stopScanner();

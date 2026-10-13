@@ -1,56 +1,61 @@
+.app,
 .app-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-main {
-  min-height: 100vh;
-  padding: 18px 16px calc(var(--nav-size) + 18px);
+  min-width: 0;
+  min-height: 100dvh;
+  padding: 16px 16px calc(var(--nav-size) + env(safe-area-inset-bottom) + 24px);
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 16px;
   max-width: 1180px;
-  margin: 0 auto 18px;
+  margin: 0 auto 16px;
 }
 
 .topbar h1 {
   margin: 0;
-  font-size: clamp(2rem, 8vw, 4.6rem);
+  font-size: clamp(2rem, 10vw, 4.4rem);
   line-height: .9;
   letter-spacing: 0;
 }
 
 .eyebrow {
-  margin: 0 0 .35rem;
+  margin: 0 0 4px;
   color: var(--muted);
-  font-size: .78rem;
-  font-weight: 800;
+  font-size: .74rem;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: .12em;
+  letter-spacing: .08em;
 }
 
 .view {
+  min-width: 0;
   max-width: 1180px;
   margin: 0 auto;
+  outline: none;
 }
 
 .screen {
   display: grid;
+  min-width: 0;
   gap: 16px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
 .grid-tight {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -59,21 +64,43 @@
   gap: 14px;
 }
 
+.rail-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(132px, 42vw);
+  gap: 12px;
+  max-width: 100%;
+  margin-inline: -16px;
+  padding: 2px 16px 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-scroll > * {
+  scroll-snap-align: start;
+}
+
 .app-nav {
   position: fixed;
   inset-inline: 10px;
-  bottom: 10px;
-  z-index: 20;
+  bottom: 0;
+  z-index: 30;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   min-height: 66px;
-  padding: 8px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   border: 1px solid rgba(23, 26, 24, .08);
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-radius: 24px 24px 0 0;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(22px);
 }
 
 .nav-link {
@@ -81,22 +108,30 @@
   place-items: center;
   gap: 3px;
   min-width: 0;
-  padding: 8px 2px;
-  border: 0;
-  border-radius: 17px;
-  background: transparent;
+  min-height: 50px;
+  padding: 7px 2px;
+  border-radius: 18px;
   color: var(--muted);
   text-decoration: none;
-  font-size: .71rem;
-  font-weight: 800;
+  font-size: .68rem;
+  font-weight: 900;
+  transition: transform .2s ease, background .2s ease, color .2s ease;
 }
 
-.nav-link span {
+.nav-icon {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
+  width: 27px;
+  height: 27px;
   font-size: 1rem;
+  transition: transform .22s ease;
+}
+
+.nav-label {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-link[aria-current="page"] {
@@ -104,8 +139,9 @@
   color: var(--surface);
 }
 
-.nav-link[aria-current="page"] span {
+.nav-link[aria-current="page"] .nav-icon {
   color: var(--accent);
+  transform: translateY(-2px) scale(1.12);
 }
 
 .modal-root:empty {
@@ -115,31 +151,43 @@
 .modal-root {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 60;
   display: grid;
-  place-items: center;
-  padding: 16px;
+  align-items: end;
+  padding: 16px 10px 0;
   background: rgba(23, 26, 24, .48);
 }
 
 .modal-panel {
-  width: min(720px, 100%);
-  max-height: min(760px, 92vh);
+  width: min(760px, 100%);
+  max-height: min(88dvh, 780px);
+  margin-inline: auto;
   overflow: auto;
-  border-radius: 28px;
+  border-radius: 28px 28px 0 0;
   background: var(--surface);
   box-shadow: var(--shadow);
+  touch-action: pan-y;
+}
+
+.modal-panel::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 5px;
+  margin: 10px auto 0;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
 }
 
 .modal-body {
-  padding: 22px;
+  padding: 18px 18px calc(22px + env(safe-area-inset-bottom));
 }
 
 .toast-region {
   position: fixed;
   right: 14px;
-  bottom: calc(var(--nav-size) + 18px);
-  z-index: 50;
+  bottom: calc(var(--nav-size) + env(safe-area-inset-bottom) + 16px);
+  z-index: 70;
   display: grid;
   gap: 8px;
   width: min(360px, calc(100vw - 28px));
